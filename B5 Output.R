@@ -86,8 +86,41 @@ cbind(c1,c2,c3,c4)
 round(cbind(c1,c2,c4),4)
 
 #### Simulation
+# Here, we set Delta (in the paper) = Delta.t (in the code) = 1/100 to be
+# consistent with Fig 1 (note: \tilde{Delta} (in the paper) = Delta (in the
+# code) = 1/10000).
 
-X.sample <- X
+set.seed(245780)
+
+TT <- 1000
+Delta.t <- 1/100 # Delta
+space <- 100 
+Delta <- Delta.t/space # Delta~
+M <- TT/Delta
+
+h <- lambda*Delta
+size2 <- 1
+grid.pts <- expand.grid(Grid.x[1,],Grid.x[2,])
+sample.ind <- sample(1:dim(grid.pts)[1],size=size2,prob=c(P),replace=TRUE)
+sample.pts <- grid.pts[sample.ind,]
+
+X.sample.all <- list()
+
+for(j in 1:size2){
+  print(j)
+  # Simualate Z
+  return.process <- sim.vag(a*h,alpha1/h,alpha2/h,mu1*h,mu2*h,S11*h,S22*h,rho,t.max=M)
+  R1 <- return.process[,1]+eta1*h
+  R2 <- return.process[,2]+eta2*h
+  
+  # Simualate LDOUP
+  X <- array(NA,c(M+1,2)); X[1,] <- as.numeric(sample.pts[j,])
+  for(i in 1:M){
+    X[i+1,] <- exp(-h)*(X[i,]+exp(h)*c(R1[i],R2[i]))
+  }
+  X.sample <- X[seq(from=1,to=M+1,by=space),]
+  X.sample.all[[j]] <- X.sample
+}
 
 # Plot
 x1.text = expression(italic("X")[1]*"("*italic("t")*")")
@@ -101,17 +134,19 @@ layout(mat = layout.matrix, heights = c(1,1,2))
 
 # Plot 1
 par(mar=c(0,3,3,3)+c(0,.1,0,0),mgp=c(2,.5,0))
-tt <- seq(0,size,by=Delta)
-n <- M+1
+tt <- seq(0,TT,by=Delta.t)
+n <- TT/Delta.t+1
 plot(tt[1:n],X.sample[1:n,1],type="l",xlab="",ylab=x1.text,xlim=c(tt[1],tt[n]),
-     xaxt="n",xaxs="i")
+     xaxt="n",xaxs="i",yaxt="n")
+axis(2, at=c(-1,0,1,2))
 # Plot 2
 par(mar=c(3,3,0,3)+c(0,.1,0,0),mgp=c(2,.5,0))
 plot(tt[1:n],X.sample[1:n,2],type="l",xlab=t.text,ylab=x2.text,xlim=c(tt[1],tt[n]),
-     xaxs="i")
+     xaxs="i",yaxt="n")
+axis(2, at=c(-1,0,1))
 # Plot 3
 par(mar=c(3,3,3,3)+c(0,.1,0,0),mgp=c(2,.5,0))
-n <- 1000+1
+n <- 10/Delta.t+1
 plot(tt[1:n],X.sample[1:n,1],type="l",xlab=t.text,ylab=x.text,xlim=c(tt[1],tt[n]),
      ylim=summary(c(X.sample[1:n,1],X.sample[1:n,2]))[c(1,6)],xaxs="i")
 lines(tt[1:n],X.sample[1:n,2],col="blue",lty=5)
